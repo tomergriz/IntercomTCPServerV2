@@ -1,7 +1,6 @@
 require('dotenv').config();
 
 const net = require('net');
-const http = require('http');
 const { createClient } = require('@supabase/supabase-js');
 
 // הגדרות Supabase מהסביבה (Environment Variables)
@@ -15,9 +14,9 @@ if (!SUPABASE_URL || !SUPABASE_KEY) {
 
 const supabase = createClient(SUPABASE_URL, SUPABASE_KEY);
 
-const PORT = process.env.PORT || 8080;
 const HOST = '0.0.0.0';
-const TCP_PORT = process.env.TCP_PORT || 9000; // פורט נפרד ל-TCP
+// במקום להשתמש ב-TCP_PORT נפרד, נסה להקשיב לפורט ש-Railway נותן
+const TCP_PORT = process.env.PORT || 9000;
 
 // אובייקט לשמירת מצב אחרון של מכשירים (כדי למנוע כפילויות)
 const lastHeartbeat = {};
@@ -77,43 +76,5 @@ const server = net.createServer((socket) => {
 });
 
 server.listen(TCP_PORT, HOST, () => {
-  console.log(`TCP server listening on ${HOST}:${TCP_PORT}`);
-});
-
-// HTTP Health-Check Endpoint for Railway
-const healthCheckServer = http.createServer(async (req, res) => {
-  if (req.url === '/' || req.url === '/health') {
-    try {
-      // בדיקה שקיום חיבור ל-Supabase
-      const { data, error } = await supabase
-        .from('intercom_events')
-        .select('count', { count: 'exact' })
-        .limit(1);
-
-      if (error) throw error;
-
-      res.writeHead(200, { 'Content-Type': 'application/json' });
-      res.end(JSON.stringify({
-        status: 'healthy',
-        timestamp: new Date().toISOString(),
-        supabase: 'connected',
-        tcpPort: TCP_PORT,
-        httpPort: PORT
-      }));
-    } catch (err) {
-      console.error('[Health Check Error]', err);
-      res.writeHead(503, { 'Content-Type': 'application/json' });
-      res.end(JSON.stringify({
-        status: 'unhealthy',
-        error: err.message
-      }));
-    }
-  } else {
-    res.writeHead(404, { 'Content-Type': 'application/json' });
-    res.end(JSON.stringify({ error: 'Not found' }));
-  }
-});
-
-healthCheckServer.listen(PORT, HOST, () => {
-  console.log(`Health-check endpoint listening on http://${HOST}:${PORT}/health`);
+  console.log(`TCP Server is definitely listening on port ${TCP_PORT}`);
 });
