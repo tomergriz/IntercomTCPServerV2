@@ -24,8 +24,8 @@ const activeClients = {}; // device_id -> socket
 // האזנה לפקודות מ-Supabase (שליטה מרחוק)
 supabase
   .channel('device_commands')
-  .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'intercom_commands' }, payload => {
-    const { device_id, command_data } = payload.new;
+  .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'intercom_commands' }, async payload => {
+    const { id, device_id, command_data } = payload.new;
     console.log(`[Command] Received for ${device_id}: ${command_data}`);
 
     if (activeClients[device_id]) {
@@ -40,8 +40,21 @@ supabase
 
       socket.write(JSON.stringify({ type: 'command', data: parsedData }) + '\n');
       console.log(`[Command] Sent to device ${device_id}`);
+
+      // Update status to 'sent' in Supabase
+      const { error } = await supabase
+        .from('intercom_commands')
+        .update({ status: 'sent', sent_at: new Date().toISOString() })
+        .eq('id', id);
+
+      if (error) console.error(`[Supabase] Failed to update command status: ${error.message}`);
     } else {
       console.log(`[Command] Device ${device_id} is not connected.`);
+      const { error } = await supabase
+        .from('intercom_commands')
+        .update({ status: 'failed', error_message: 'Device not connected' })
+        .eq('id', id);
+      if (error) console.error(`[Supabase] Failed to update command status: ${error.message}`);
     }
   })
   .subscribe();
