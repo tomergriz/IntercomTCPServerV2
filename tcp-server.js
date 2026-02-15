@@ -25,12 +25,20 @@ const activeClients = {}; // device_id -> socket
 supabase
   .channel('device_commands')
   .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'intercom_commands' }, payload => {
-    const { device_id, command, data } = payload.new;
-    console.log(`[Command] Received for ${device_id}: ${command}`);
+    const { device_id, command_data } = payload.new;
+    console.log(`[Command] Received for ${device_id}: ${command_data}`);
 
     if (activeClients[device_id]) {
       const socket = activeClients[device_id];
-      socket.write(JSON.stringify({ type: 'command', command, data }) + '\n');
+      // Parsing command_data as JSON if possible, otherwise sending as string
+      let parsedData;
+      try {
+        parsedData = JSON.parse(command_data);
+      } catch (e) {
+        parsedData = command_data;
+      }
+
+      socket.write(JSON.stringify({ type: 'command', data: parsedData }) + '\n');
       console.log(`[Command] Sent to device ${device_id}`);
     } else {
       console.log(`[Command] Device ${device_id} is not connected.`);
