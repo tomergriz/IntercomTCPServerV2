@@ -77,6 +77,8 @@ const server = net.createServer(async (socket) => {
   socket.on('data', async (data) => {
     try {
       const rawString = data.toString().trim();
+      const rawHex = data.toString('hex').match(/.{1,2}/g).join(' ');
+      console.log(`[RAW] From ${clientAddress} | Text: "${rawString}" | Hex: ${rawHex} | Bytes: ${data.length}`);
       const jsonMatch = rawString.match(/\{.*\}/);
 
       if (!jsonMatch) {
