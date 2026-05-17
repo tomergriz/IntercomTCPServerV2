@@ -1,6 +1,7 @@
 require('dotenv').config();
 
 const net = require('net');
+const http = require('http');
 const { createClient } = require('@supabase/supabase-js');
 
 // הגדרות Supabase
@@ -153,4 +154,61 @@ const server = net.createServer(async (socket) => {
 
 server.listen(TCP_PORT, HOST, () => {
   console.log(`TCP Server is running on port ${TCP_PORT}`);
+});
+
+// HTTP API לשליחת פקודות ישירות למכשיר
+const HTTP_PORT = process.env.HTTP_PORT || 3000;
+
+const httpServer = http.createServer((req, res) => {
+  res.setHeader('Access-Control-Allow-Origin', '*');
+  res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
+
+  if (req.method === 'OPTIONS') {
+    res.writeHead(204);
+    res.end();
+    return;
+  }
+
+  if (req.method === 'GET' && req.url === '/devices') {
+    const devices = Object.keys(activeClients);
+    res.writeHead(200, { 'Content-Type': 'application/json' });
+    res.end(JSON.stringify({ connected: devices, count: devices.length }));
+    return;
+  }
+
+  if (req.method === 'POST' && req.url === '/command') {
+    let body = '';
+    req.on('data', chunk => { body += chunk; });
+    req.on('end', () => {
+      try {
+        const { device_id, command } = JSON.parse(body);
+        if (!device_id || !command) {
+          res.writeHead(400, { 'Content-Type': 'application/json' });
+          res.end(JSON.stringify({ error: 'Missing device_id or command' }));
+          return;
+        }
+        if (!activeClients[device_id]) {
+          res.writeHead(404, { 'Content-Type': 'application/json' });
+          res.end(JSON.stringify({ error: `Device ${device_id} is not connected` }));
+          return;
+        }
+        activeClients[device_id].write(JSON.stringify({ type: 'command', data: command }) + '\n');
+        console.log(`[HTTP] Command sent to ${device_id}: ${JSON.stringify(command)}`);
+        res.writeHead(200, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ status: 'sent', device_id, command }));
+      } catch (e) {
+        res.writeHead(400, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ error: 'Invalid JSON' }));
+      }
+    });
+    return;
+  }
+
+  res.writeHead(404);
+  res.end();
+});
+
+httpServer.listen(HTTP_PORT, () => {
+  console.log(`HTTP API is running on port ${HTTP_PORT}`);
 });
