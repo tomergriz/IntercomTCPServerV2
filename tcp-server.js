@@ -16,8 +16,10 @@ if (!SUPABASE_URL || !SUPABASE_KEY) {
 const supabase = createClient(SUPABASE_URL, SUPABASE_KEY);
 
 const HOST = '0.0.0.0';
-const TCP_PORT = process.env.TCP_PORT || 8080;
-const HTTP_PORT = process.env.PORT || 3000;
+const TCP_PORT = process.env.PORT || 8080;
+const HTTP_PORT = process.env.HTTP_PORT || 3000;
+
+const israelTime = () => new Date().toLocaleString('he-IL', { timeZone: 'Asia/Jerusalem', hour12: false });
 
 const lastHeartbeat = {};
 const MIN_INTERVAL_MS = 60000;
@@ -85,7 +87,7 @@ const server = net.createServer(async (socket) => {
 
       if (!jsonMatch) {
         console.log(`[Received] Raw data from ${clientAddress}: ${rawString}`);
-        socket.write(JSON.stringify({ status: "received", data: rawString, ts: Math.floor(Date.now() / 1000) }) + '\n');
+        socket.write(JSON.stringify({ status: "received", data: rawString, ts: Math.floor(Date.now() / 1000), time_il: israelTime() }) + '\n');
         return;
       }
 
@@ -125,7 +127,7 @@ const server = net.createServer(async (socket) => {
       }
 
       // שליחת תשובה למכשיר
-      socket.write(JSON.stringify({ status: "ok", device_id: deviceId, ts: Math.floor(currentTime / 1000) }) + '\n');
+      socket.write(JSON.stringify({ status: "ok", device_id: deviceId, ts: Math.floor(currentTime / 1000), time_il: israelTime() }) + '\n');
 
     } catch (err) {
       console.error(`[Error] Processing failed:`, err.message);
