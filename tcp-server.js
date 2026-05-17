@@ -64,14 +64,15 @@ const server = net.createServer(async (socket) => {
   console.log(`[${new Date().toISOString()}] New Connection: ${clientAddress}`);
 
   // לוג התחברות ראשוני (ללא ID עדיין)
-  await supabase
+  const { error: connLogError } = await supabase
     .from('intercom_events')
     .insert([{
-      event_type: 0, // 'Connection' status
+      event_type: 0,
       client_ip: clientAddress,
       raw_data: { status: 'connected' },
       created_at: new Date().toISOString()
-    }]).catch(err => console.error('[Supabase] Connection log failed:', err.message));
+    }]);
+  if (connLogError) console.error('[Supabase] Connection log failed:', connLogError.message);
 
   socket.on('data', async (data) => {
     try {
