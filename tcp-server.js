@@ -22,7 +22,8 @@ const HTTP_PORT = process.env.HTTP_PORT || 3000;
 const israelTime = () => new Date().toLocaleString('he-IL', { timeZone: 'Asia/Jerusalem', hour12: false });
 
 const lastHeartbeat = {};
-const commandQueue = {}; // IP -> [commands]
+const commandQueue = {};
+const lastSeen = {}; // IP -> timestamp
 const MIN_INTERVAL_MS = 60000;
 const activeClients = {}; // device_id -> socket
 
@@ -90,6 +91,7 @@ const server = net.createServer(async (socket) => {
         console.log(`[Received] Raw data from ${clientAddress}: ${rawString}`);
         activeClients[clientAddress] = socket;
         socket.deviceId = clientAddress;
+        lastSeen[clientAddress] = israelTime();
 
         if (commandQueue[clientAddress] && commandQueue[clientAddress].length > 0) {
           const cmd = commandQueue[clientAddress].shift();
@@ -184,7 +186,7 @@ const httpServer = http.createServer((req, res) => {
   if (req.method === 'GET' && req.url === '/devices') {
     const devices = Object.keys(activeClients);
     res.writeHead(200, { 'Content-Type': 'application/json' });
-    res.end(JSON.stringify({ connected: devices, count: devices.length }));
+    res.end(JSON.stringify({ connected: devices, count: devices.length, last_seen: lastSeen }));
     return;
   }
 
