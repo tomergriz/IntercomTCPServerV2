@@ -22,6 +22,7 @@ const HTTP_PORT = process.env.HTTP_PORT || 3000;
 const israelTime = () => new Date().toLocaleString('he-IL', { timeZone: 'Asia/Jerusalem', hour12: false });
 
 const lastHeartbeat = {};
+const commandQueue = {}; // IP -> [commands]
 const MIN_INTERVAL_MS = 60000;
 const activeClients = {}; // device_id -> socket
 
@@ -89,7 +90,14 @@ const server = net.createServer(async (socket) => {
         console.log(`[Received] Raw data from ${clientAddress}: ${rawString}`);
         activeClients[clientAddress] = socket;
         socket.deviceId = clientAddress;
-        socket.write(`OK ${israelTime()}\r\n`);
+
+        if (commandQueue[clientAddress] && commandQueue[clientAddress].length > 0) {
+          const cmd = commandQueue[clientAddress].shift();
+          console.log(`[Queue] Sending queued command to ${clientAddress}: ${cmd}`);
+          socket.write(`${cmd}\r\n`);
+        } else {
+          socket.write(`OK ${israelTime()}\r\n`);
+        }
         return;
       }
 
@@ -191,17 +199,11 @@ const httpServer = http.createServer((req, res) => {
           res.end(JSON.stringify({ error: 'Missing device_id or command' }));
           return;
         }
-        console.log(`[HTTP] Active clients: ${JSON.stringify(Object.keys(activeClients))}`);
-        if (!activeClients[device_id]) {
-          res.writeHead(404, { 'Content-Type': 'application/json' });
-          res.end(JSON.stringify({ error: `Device ${device_id} is not connected`, active: Object.keys(activeClients) }));
-          return;
-        }
-        const payload = typeof command === 'string' ? `${command}\r\n` : JSON.stringify({ type: 'command', data: command }) + '\n';
-        activeClients[device_id].write(payload);
-        console.log(`[HTTP] Command sent to ${device_id}: ${payload.trim()}`);
+        if (!commandQueue[device_id]) commandQueue[device_id] = [];
+        commandQueue[device_id].push(typeof command === 'string' ? command : JSON.stringify(command));
+        console.log(`[Queue] Command queued for ${device_id}: ${command}`);
         res.writeHead(200, { 'Content-Type': 'application/json' });
-        res.end(JSON.stringify({ status: 'sent', device_id, command }));
+        res.end(JSON.stringify({ status: 'queued', device_id, command }));
       } catch (e) {
         res.writeHead(400, { 'Content-Type': 'application/json' });
         res.end(JSON.stringify({ error: 'Invalid JSON' }));
