@@ -87,6 +87,8 @@ const server = net.createServer(async (socket) => {
 
       if (!jsonMatch) {
         console.log(`[Received] Raw data from ${clientAddress}: ${rawString}`);
+        activeClients[clientAddress] = socket;
+        socket.deviceId = clientAddress;
         socket.write(`OK ${israelTime()}\r\n`);
         return;
       }
