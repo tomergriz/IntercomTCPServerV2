@@ -16,7 +16,8 @@ if (!SUPABASE_URL || !SUPABASE_KEY) {
 const supabase = createClient(SUPABASE_URL, SUPABASE_KEY);
 
 const HOST = '0.0.0.0';
-const TCP_PORT = process.env.PORT || 8080;
+const TCP_PORT = process.env.TCP_PORT || 8080;
+const HTTP_PORT = process.env.PORT || 3000;
 
 const lastHeartbeat = {};
 const MIN_INTERVAL_MS = 60000;
@@ -157,7 +158,6 @@ server.listen(TCP_PORT, HOST, () => {
 });
 
 // HTTP API לשליחת פקודות ישירות למכשיר
-const HTTP_PORT = process.env.HTTP_PORT || 3000;
 
 const httpServer = http.createServer((req, res) => {
   res.setHeader('Access-Control-Allow-Origin', '*');
