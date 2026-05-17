@@ -80,7 +80,8 @@ const server = net.createServer(async (socket) => {
       const jsonMatch = rawString.match(/\{.*\}/);
 
       if (!jsonMatch) {
-        console.log(`[Log] Received non-JSON data: ${rawString}`);
+        console.log(`[Received] Raw data from ${clientAddress}: ${rawString}`);
+        socket.write(JSON.stringify({ status: "received", data: rawString, ts: Math.floor(Date.now() / 1000) }) + '\n');
         return;
       }
 
@@ -112,12 +113,15 @@ const server = net.createServer(async (socket) => {
             created_at: new Date().toISOString()
           }]);
 
-        if (error) throw error;
-        console.log(`[Success] Data saved. Type: ${eventType}, Device: ${deviceId}`);
+        if (error) {
+          console.error(`[Supabase] Save failed: ${error.message}`);
+        } else {
+          console.log(`[Success] Data saved. Type: ${eventType}, Device: ${deviceId}`);
+        }
       }
 
       // שליחת תשובה למכשיר
-      socket.write(JSON.stringify({ status: "ok", ts: Math.floor(currentTime / 1000) }) + '\n');
+      socket.write(JSON.stringify({ status: "ok", device_id: deviceId, ts: Math.floor(currentTime / 1000) }) + '\n');
 
     } catch (err) {
       console.error(`[Error] Processing failed:`, err.message);
