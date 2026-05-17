@@ -191,13 +191,15 @@ const httpServer = http.createServer((req, res) => {
           res.end(JSON.stringify({ error: 'Missing device_id or command' }));
           return;
         }
+        console.log(`[HTTP] Active clients: ${JSON.stringify(Object.keys(activeClients))}`);
         if (!activeClients[device_id]) {
           res.writeHead(404, { 'Content-Type': 'application/json' });
-          res.end(JSON.stringify({ error: `Device ${device_id} is not connected` }));
+          res.end(JSON.stringify({ error: `Device ${device_id} is not connected`, active: Object.keys(activeClients) }));
           return;
         }
-        activeClients[device_id].write(JSON.stringify({ type: 'command', data: command }) + '\n');
-        console.log(`[HTTP] Command sent to ${device_id}: ${JSON.stringify(command)}`);
+        const payload = typeof command === 'string' ? `${command}\r\n` : JSON.stringify({ type: 'command', data: command }) + '\n';
+        activeClients[device_id].write(payload);
+        console.log(`[HTTP] Command sent to ${device_id}: ${payload.trim()}`);
         res.writeHead(200, { 'Content-Type': 'application/json' });
         res.end(JSON.stringify({ status: 'sent', device_id, command }));
       } catch (e) {
