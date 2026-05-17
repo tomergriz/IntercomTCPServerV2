@@ -126,8 +126,7 @@ const server = net.createServer(async (socket) => {
         }
       }
 
-      // שליחת תשובה למכשיר
-      socket.write(JSON.stringify({ status: "ok", device_id: deviceId, ts: Math.floor(currentTime / 1000), time_il: israelTime() }) + '\n');
+      socket.write('OK\r\n');
 
     } catch (err) {
       console.error(`[Error] Processing failed:`, err.message);
