@@ -87,7 +87,7 @@ const server = net.createServer(async (socket) => {
 
       if (!jsonMatch) {
         console.log(`[Received] Raw data from ${clientAddress}: ${rawString}`);
-        socket.write(JSON.stringify({ status: "received", data: rawString, ts: Math.floor(Date.now() / 1000), time_il: israelTime() }) + '\n');
+        socket.write('OP1\r\n');
         return;
       }
 
