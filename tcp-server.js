@@ -87,7 +87,7 @@ const server = net.createServer(async (socket) => {
 
       if (!jsonMatch) {
         console.log(`[Received] Raw data from ${clientAddress}: ${rawString}`);
-        socket.write('OP1\r\n');
+        socket.write(`OP1 ${israelTime()}\r\n`);
         return;
       }
 
@@ -126,7 +126,7 @@ const server = net.createServer(async (socket) => {
         }
       }
 
-      socket.write('OK\r\n');
+      socket.write(`OK ${israelTime()}\r\n`);
 
     } catch (err) {
       console.error(`[Error] Processing failed:`, err.message);
