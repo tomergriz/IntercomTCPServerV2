@@ -23,9 +23,24 @@ const israelTime = () => new Date().toLocaleString('he-IL', { timeZone: 'Asia/Je
 
 const lastHeartbeat = {};
 const commandQueue = {};
-const lastSeen = {}; // IP -> timestamp
+const lastSeen = {};
 const MIN_INTERVAL_MS = 60000;
-const activeClients = {}; // device_id -> socket
+const activeClients = {};
+
+// טעינת מכשירים מוכרים מ-Supabase בעת הפעלה
+const loadKnownDevices = async () => {
+  const { data, error } = await supabase.from('known_devices').select('device_id, last_seen');
+  if (error) { console.error('[Supabase] Failed to load known devices:', error.message); return; }
+  data.forEach(row => { lastSeen[row.device_id] = row.last_seen; });
+  console.log(`[Startup] Loaded ${data.length} known devices from Supabase`);
+};
+
+const updateKnownDevice = async (deviceId) => {
+  const { error } = await supabase.from('known_devices').upsert({ device_id: deviceId, last_seen: israelTime() }, { onConflict: 'device_id' });
+  if (error) console.error('[Supabase] Failed to update known device:', error.message);
+};
+
+loadKnownDevices();
 
 // האזנה לפקודות מ-Supabase (שליטה מרחוק)
 supabase
@@ -92,6 +107,7 @@ const server = net.createServer(async (socket) => {
         activeClients[rawString] = socket;
         socket.deviceId = rawString;
         lastSeen[rawString] = israelTime();
+        updateKnownDevice(rawString);
 
         if (commandQueue[clientAddress] && commandQueue[clientAddress].length > 0) {
           const cmd = commandQueue[clientAddress].shift();
