@@ -89,9 +89,9 @@ const server = net.createServer(async (socket) => {
 
       if (!jsonMatch) {
         console.log(`[Received] Raw data from ${clientAddress}: ${rawString}`);
-        activeClients[clientAddress] = socket;
-        socket.deviceId = clientAddress;
-        lastSeen[clientAddress] = israelTime();
+        activeClients[rawString] = socket;
+        socket.deviceId = rawString;
+        lastSeen[rawString] = israelTime();
 
         if (commandQueue[clientAddress] && commandQueue[clientAddress].length > 0) {
           const cmd = commandQueue[clientAddress].shift();
