@@ -221,3 +221,17 @@ const httpServer = http.createServer((req, res) => {
 httpServer.listen(HTTP_PORT, () => {
   console.log(`HTTP API is running on port ${HTTP_PORT}`);
 });
+
+// Graceful shutdown — שולח הודעה למכשירים לפני סגירה
+const shutdown = () => {
+  console.log('[Shutdown] Server shutting down, notifying devices...');
+  Object.entries(activeClients).forEach(([id, socket]) => {
+    try {
+      socket.write('RECONNECT\r\n');
+    } catch (e) {}
+  });
+  setTimeout(() => process.exit(0), 2000);
+};
+
+process.on('SIGTERM', shutdown);
+process.on('SIGINT', shutdown);
