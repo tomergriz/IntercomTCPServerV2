@@ -201,11 +201,24 @@ const httpServer = http.createServer((req, res) => {
           res.end(JSON.stringify({ error: 'Missing device_id or command' }));
           return;
         }
-        if (!commandQueue[device_id]) commandQueue[device_id] = [];
-        commandQueue[device_id].push(typeof command === 'string' ? command : JSON.stringify(command));
-        console.log(`[Queue] Command queued for ${device_id}: ${command}`);
-        res.writeHead(200, { 'Content-Type': 'application/json' });
-        res.end(JSON.stringify({ status: 'queued', device_id, command }));
+        if (!lastSeen[device_id]) {
+          res.writeHead(404, { 'Content-Type': 'application/json' });
+          res.end(JSON.stringify({ error: `Unknown device: ${device_id}`, known_devices: Object.keys(lastSeen) }));
+          return;
+        }
+        const payload = typeof command === 'string' ? command : JSON.stringify(command);
+        if (activeClients[device_id]) {
+          activeClients[device_id].write(`${payload}\r\n`);
+          console.log(`[Command] Sent immediately to ${device_id}: ${payload}`);
+          res.writeHead(200, { 'Content-Type': 'application/json' });
+          res.end(JSON.stringify({ status: 'sent', device_id, command }));
+        } else {
+          if (!commandQueue[device_id]) commandQueue[device_id] = [];
+          commandQueue[device_id].push(payload);
+          console.log(`[Queue] Command queued for ${device_id}: ${payload}`);
+          res.writeHead(200, { 'Content-Type': 'application/json' });
+          res.end(JSON.stringify({ status: 'queued', device_id, command, last_seen: lastSeen[device_id] }));
+        }
       } catch (e) {
         res.writeHead(400, { 'Content-Type': 'application/json' });
         res.end(JSON.stringify({ error: 'Invalid JSON' }));
