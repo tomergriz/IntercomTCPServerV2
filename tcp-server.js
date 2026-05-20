@@ -264,3 +264,11 @@ const shutdown = () => {
 
 process.on('SIGTERM', shutdown);
 process.on('SIGINT', shutdown);
+
+process.on('uncaughtException', (err) => {
+  console.error('[CRASH PREVENTED] uncaughtException:', err.message, err.stack);
+});
+
+process.on('unhandledRejection', (reason) => {
+  console.error('[CRASH PREVENTED] unhandledRejection:', reason);
+});
