@@ -16,7 +16,7 @@ if (!SUPABASE_URL || !SUPABASE_KEY) {
 const supabase = createClient(SUPABASE_URL, SUPABASE_KEY);
 
 const HOST = '0.0.0.0';
-const TCP_PORT = process.env.PORT || 8080;
+const TCP_PORT = process.env.TCP_PORT || 8080;
 const HTTP_PORT = process.env.HTTP_PORT || 3000;
 
 const israelTime = () => new Date().toLocaleString('he-IL', { timeZone: 'Asia/Jerusalem', hour12: false });
