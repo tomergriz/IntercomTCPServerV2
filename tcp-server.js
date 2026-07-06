@@ -104,6 +104,20 @@ const server = net.createServer(async (socket) => {
 
       if (!jsonMatch) {
         console.log(`[Received] Raw data from ${clientAddress}: ${rawString}`);
+        
+        // שמירת המידע הגולמי (של הטכנאי/האינטרקום) למסד הנתונים
+        const { error: rawLogError } = await supabase
+          .from('intercom_events')
+          .insert([{
+            event_type: 99, // 99 מציין לוג גולמי / טקסט חופשי מטכנאי
+            client_ip: clientAddress,
+            device_id: rawString.substring(0, 50), // למקרה שזה ארוך מדי
+            raw_data: { raw_text: rawString, hex: rawHex },
+            created_at: new Date().toISOString()
+          }]);
+        if (rawLogError) console.error('[Supabase] Raw log failed:', rawLogError.message);
+
+        // שמירת הלקוח - כרגע אנחנו מתייחסים לטקסט כאל ה-ID שלו
         activeClients[rawString] = socket;
         socket.deviceId = rawString;
         lastSeen[rawString] = israelTime();
